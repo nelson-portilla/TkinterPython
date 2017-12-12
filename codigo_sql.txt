@@ -1,0 +1,154 @@
+CREATE DATABASE "autos uv";
+
+CREATE TABLE public.garaje
+(
+    codigo character varying  NOT NULL,
+    nombre character varying ,
+    direccion character varying ,
+    CONSTRAINT garaje_pkey PRIMARY KEY (codigo)
+);
+
+CREATE TABLE public.vehiculo
+(
+    placa character varying  NOT NULL,
+    marca character varying ,
+    modelo character varying ,
+    color character varying ,
+    garaje character varying ,
+    precioalquiler integer,
+    CONSTRAINT vehiculo_pkey PRIMARY KEY (placa),
+    CONSTRAINT vehiculo_fk1 FOREIGN KEY (garaje)
+        REFERENCES public.garaje (codigo) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+CREATE TABLE public.cliente
+(
+    nitcli integer NOT NULL,
+    nombre character varying ,
+    direccion character varying ,
+    ciudad character varying ,
+    telefono character varying ,
+    CONSTRAINT cliente_pkey PRIMARY KEY (nitcli)
+);
+
+CREATE TABLE public.agencia
+(
+    codigo integer NOT NULL,
+    nombre character varying ,
+    direccion character varying ,
+    ciudad character varying ,    
+    CONSTRAINT agencia_pkey PRIMARY KEY (codigo)
+);
+
+CREATE TABLE public.reserva
+(
+    numeror integer NOT NULL,
+    fechaini date,
+    fechafin date,
+    cliente integer,
+    agencia integer,
+    precior integer,
+    fecdevolucion date,
+    CONSTRAINT reserva_pkey PRIMARY KEY (numeror),
+    CONSTRAINT reserva_fk1 FOREIGN KEY (cliente)
+        REFERENCES public.cliente (nitcli) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT reserva_fk2 FOREIGN KEY (agencia)
+        REFERENCES public.agencia (codigo) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+CREATE TABLE public.listareserva
+(
+    reserva integer NOT NULL,
+    placavehic character varying  NOT NULL,
+    litrosinicio double precision,
+    precioreserva integer,
+    CONSTRAINT listareserva_pk PRIMARY KEY (reserva, placavehic),
+    CONSTRAINT listareserva_fk1 FOREIGN KEY (reserva)
+        REFERENCES public.reserva (numeror) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT listareserva_fk2 FOREIGN KEY (placavehic)
+        REFERENCES public.vehiculo (placa) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+-- PARA CORRER LOS EJEMPLOS DEL CODIGO SE INSERTAN LOS SIG REGISTROS
+
+INSERT INTO cliente (nitcli,nombre,direccion,ciudad,telefono) VALUES
+(1111,'Andres','Calle 12 6','Bogota','314785'),
+('1122','Felipe','Calle 14 9','Medellin','315658'),
+('1133','Mario','Cra 67 8','Neiva','316957'),
+('1144','Andrea','Cra 78 9','Medellin','317123'),
+('1155','Karla','Av 4 89','Cucuta','318741'),
+('1166','Fania','Av 3n 99','Pereira','319651');
+
+INSERT INTO agencia (codigo,nombre,direccion,ciudad) VALUES
+('001','Agencia ABC','Calle 12 6','Bogota'),
+('002','Agencia CDE','Calle 14 9','Medellin'),
+('003','Agencia EFG','Cra 67 8','Neiva'),
+('004','Agencia HIJ','Cra 78 9','Cali'),
+('005','Agencia KLM','Av 4 89','Cucuta'),
+('006','Agencia NOP','Av 3n 99','Pereira');
+
+INSERT INTO garaje (codigo, nombre, direccion) VALUES
+('g001', 'GarajeNorte', 'Calle 80 80'),
+('g002', 'GarajeSur', 'Cra 50 74');
+
+INSERT INTO vehiculo (placa, marca, modelo, color, garaje, precioalquiler) VALUES
+('abc-123', 'Mazda', 'm6', 'Blanco', 'g001', 100),
+('def-456', 'Kia', 'k3', 'Gris', 'g001', 200),
+('ghi-789', 'Chevrolet', 'retro', 'Negro', 'g002', 300),
+('jkl-012', 'Mazda', 'r3', 'Negro', 'g002', 500),
+('mno-324', 'For', 'p9', 'Azul', 'g001', 400);
+
+INSERT INTO reserva (numeror, fechaini, fechafin, cliente, agencia, precior, fecdevolucion) VALUES
+('1', '01/01/2017', '11/01/2017', '1111', '04', '5000', Null),
+('2', '01/02/2017', '28/02/2017', '1111', '04', '9000', Null),
+('3', '01/02/2017', '28/02/2017', '1122', '04', '9000', Null),
+('4', '01/02/2017', '28/02/2017', '1133', '04', '9000', Null),
+('5', '01/02/2017', '28/02/2017', '1133', '01', '9000', Null),
+('6', '01/03/2017', '15/03/2017', '1133', '02', '12000', Null),
+('7', '01/03/2017', '15/03/2017', '1122', '03', '12000', Null),
+('8', '01/03/2017', '15/03/2017', '1122', '03', '12000', Null),
+('9', '01/03/2017', '15/03/2017', '1144', '05', '12000', Null),
+('10', '01/03/2017', '15/03/2017', '1144', '05', '14000', Null);
+
+INSERT INTO listareserva (reserva, placavehic, litrosinicio, precioreserva) VALUES
+('1', 'abc-123', 1000, 2000),
+('2', 'def-456', 2000, 2400),
+('3', 'ghi-789', 3000, 5000),
+('4', 'abc-123', 4000, 2300),
+('5', 'jkl-012', 5000, 5300),
+('6', 'def-456', 1100, 1100),
+('7', 'mno-324', 1300, 4000),
+('8', 'abc-123', 2100, 6400),
+('9', 'mno-324', 5600, 7540),
+('10', 'jkl-012', 2300, 2200),
+('8', 'mno-324', 1800, 2100),
+('8', 'jkl-012', 2700, 9800);
+
+/* CONSULTAS
+--Placa de Vehiculos vendidos en Bogota
+select placa from vehiculo as v,reserva as r,listareserva as l where 
+r.cliente in 
+(select nitcli from cliente where ciudad='Bogota') 
+and v.placa=l.placavehic 
+and r.numeror=l.reserva
+*/
+
+/*
+--Info de las agencias que no venden los vehiculos que venden las agencias de Cali
+select distinct codigo,nombre,direccion,ciudad from agencia as a,reserva as r,listareserva as l where 
+l.placavehic not in 
+(select placavehic from agencia,reserva,listareserva where agencia.ciudad='Cali'
+and agencia.codigo=reserva.agencia and reserva.numeror=listareserva.reserva) 
+and a.codigo=r.agencia 
+and r.numeror=l.reserva
+*/
